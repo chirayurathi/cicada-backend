@@ -78,12 +78,67 @@ def registerTeam(request):
 
     return response
 
+@api_view(['PUT'])
+@permission_classes((IsAdminUser,))
+def updateTeam(request,id):
+    response = Response()
+
+    try:
+        team = Team.objects.get(pk=id)
+        serializer = TeamSerializer(team,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            response.data = {
+            "success":True,
+            "message":'Team updated Sucessfully.',
+            'data': serializer.data
+            }
+            response.status = HTTP_200_OK
+
+        else:
+            response.data = {
+                'success': False,
+                'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+                'errors': serializer.errors
+            }
+            response.status = HTTP_400_BAD_REQUEST
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Team {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+@api_view(['DELETE'])
+@permission_classes((IsAdminUser,))
+def deleteTeam(request,id):
+    response = Response()
+    try:
+        team = Team.objects.get(pk=id)
+        team.delete()
+        response.data = {
+            'success':True,
+            'message':f'Team {id} deleted Successfully.'
+        }
+        response.status = HTTP_200_OK
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Team {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def getTeam(request,id):
     response = Response()
     try:
-        team = Team.objects.get(username=id)
+        team = Team.objects.get(pk=id)
         serializer = GetTeamSerializer(instance=team)
         response.data = {
             'success':True,
@@ -169,6 +224,62 @@ def getPlayer(request,id):
     
     return response
 
+
+@api_view(['PUT'])
+@permission_classes((IsAdminUser,))
+def updatePlayer(request,id):
+    response = Response()
+
+    try:
+        player = Player.objects.get(pk=id)
+        serializer = PlayerSerializer(player,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            response.data = {
+            "success":True,
+            "message":'Player updated Sucessfully.',
+            'data': serializer.data
+            }
+            response.status = HTTP_200_OK
+
+        else:
+            response.data = {
+                'success': False,
+                'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+                'errors': serializer.errors
+            }
+            response.status = HTTP_400_BAD_REQUEST
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Player {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+@api_view(['DELETE'])
+@permission_classes((IsAdminUser,))
+def deletePlayer(request,id):
+    response = Response()
+    try:
+        player = Player.objects.get(pk=id)
+        player.delete()
+        response.data = {
+            'success':True,
+            'message':f'Player {id} deleted Successfully.'
+        }
+        response.status = HTTP_200_OK
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Player {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+
 @api_view(['POST'])
 @permission_classes((IsAdminUser,))
 def addTrack(request):
@@ -215,6 +326,62 @@ def getTrack(request,id):
         response.status = HTTP_404_NOT_FOUND
     
     return response
+
+
+@api_view(['PUT'])
+@permission_classes((IsAdminUser,))
+def updateTrack(request,id):
+    response = Response()
+
+    try:
+        track = Track.objects.get(pk=id)
+        serializer = TrackSerializer(track,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            response.data = {
+            "success":True,
+            "message":'Track updated Sucessfully.',
+            'data': serializer.data
+            }
+            response.status = HTTP_200_OK
+
+        else:
+            response.data = {
+                'success': False,
+                'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+                'errors': serializer.errors
+            }
+            response.status = HTTP_400_BAD_REQUEST
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Track {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+@api_view(['DELETE'])
+@permission_classes((IsAdminUser,))
+def deleteTrack(request,id):
+    response = Response()
+    try:
+        track = Track.objects.get(pk=id)
+        track.delete()
+        response.data = {
+            'success':True,
+            'message':f'Track {id} deleted Successfully.'
+        }
+        response.status = HTTP_200_OK
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Track {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
 
 @api_view(['GET'])
 @permission_classes((IsAdminUser,))
