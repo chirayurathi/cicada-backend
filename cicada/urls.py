@@ -35,4 +35,8 @@ urlpatterns = [
     path('tracks/update/<int:id>/',updateTrack),
     path('tracks/delete/<int:id>/',deleteTrack),
     path('tracks/detail/',getAllTracks),
+    path('questions/add/',addQuestion),
+    path('questions/detail/<int:id>/',getQuestion),
+    path('questions/update/<int:id>/',updateQuestion),
+    path('questions/delete/<int:id>/',deleteQuestion),
 ]

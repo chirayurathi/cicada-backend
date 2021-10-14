@@ -52,6 +52,13 @@ class QuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = '__all__'
 
+class CheckQuestionSerializer(serializers.ModelSerializer):
+    question_no = serializers.IntegerField(validators=[], required = False)
+    class Meta:
+        model = Question
+        fields = '__all__'
+        validators = []
+
 class GetTrackSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many= True, source = 'question')
     class Meta:

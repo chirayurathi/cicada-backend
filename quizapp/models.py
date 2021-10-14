@@ -24,6 +24,10 @@ class Question(models.Model):
     question = models.TextField(max_length=300)
     correct_answer = models.CharField(max_length=100)
 
+    class Meta:
+        unique_together = ('track','question_no')
+        ordering = ['question_no']
+
 class Answer(models.Model):
     question = models.ForeignKey(to=Question, related_name='answer', on_delete=models.CASCADE)
     team = models.ForeignKey(to=Team, related_name='answer', on_delete=models.CASCADE)

@@ -12,6 +12,7 @@ from rest_framework.status import (
 )
 from rest_framework.response import Response
 from .serializers import *
+from django.db.models import F
 
 @csrf_exempt
 @api_view(["POST"])
@@ -414,4 +415,244 @@ def test(request):
         "message":"new token works"
     }
     response.status = HTTP_200_OK
+    return response
+
+def addLastQuestion(data):
+    response = Response()
+    print(data)
+    data["question_no"] = Question.objects.filter(track__id = data["track"]).count() + 1
+    serializer = QuestionSerializer(data = data)
+    if serializer.is_valid():
+        serializer.save()
+        response.data = {
+        "success":True,
+        "message":"Question added Sucessfully.",
+        'data': serializer.data
+        }
+        response.status = HTTP_200_OK
+    else:
+        response.data = {
+            'success': False,
+            'message': "Backend logical error on adding question at the end.",
+            'errors': serializer.errors
+        }
+        response.status = HTTP_400_BAD_REQUEST
+    return response
+
+def addIndexedQuestion(data):
+    response = Response()
+    if(data["question_no"] < 0 or data["question_no"] > Question.objects.filter(track__id = data["track"]).count() + 1):
+        response.data = {
+            'success':False,
+            'message':"Question Position Out Of Range.",
+        }
+        response.status = HTTP_400_BAD_REQUEST
+        return response
+    try:
+        Question.objects.filter(track__id = data["track"], question_no__gte = data["question_no"]).update(question_no = F('question_no')+1 )
+    except Exception as ex:
+        response.data = {
+            'success':False,
+            'message':f'Error while updating preceeding questions, error type: {type(ex).__name__}',
+        }
+        response.status = HTTP_400_BAD_REQUEST
+        return response
+    serializer = QuestionSerializer(data = data)
+    if serializer.is_valid():
+        serializer.save()
+        response.data = {
+        "success":True,
+        "message":"Question added Sucessfully.",
+        'data': serializer.data
+        }
+        response.status = HTTP_200_OK
+    else:
+        response.data = {
+            'success': False,
+            'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+            'errors': serializer.errors
+        }
+        response.status = HTTP_400_BAD_REQUEST
+    return response
+
+@api_view(['POST'])
+@permission_classes((IsAdminUser,))
+def addQuestion(request):
+    data = request.data
+    response = Response()
+    checkSerializer = CheckQuestionSerializer(data=data)
+    if checkSerializer.is_valid():
+        if not data.get("question_no"):
+            response = addLastQuestion(data)
+        else:
+            response = addIndexedQuestion(data)
+    else:
+        print("error here")
+        response.data = {
+            'success': False,
+            'message': checkSerializer.errors[list(checkSerializer.errors.keys())[0]][0],
+            'errors': checkSerializer.errors
+        }
+        response.status = HTTP_400_BAD_REQUEST
+
+    return response
+
+@api_view(['GET'])
+@permission_classes((IsAdminUser,))
+def getQuestion(request,id):
+    response = Response()
+    try:
+        question = Question.objects.get(pk=id)
+        serializer = QuestionSerializer(instance=question)
+        response.data = {
+            'success':True,
+            'message':"Question Exists.",
+            'data': serializer.data
+        }
+        response.status = HTTP_200_OK
+    except:
+        response.data = {
+            'success':False,
+            'message':"Question Does Not Exist"
+        }
+        response.status = HTTP_404_NOT_FOUND
+    
+    return response
+
+def updateIndexedQuestion(instance,data):
+    response = Response()
+    if(data["question_no"] < 0 or data["question_no"] > Question.objects.filter(track__id = data["track"]).count()):
+        response.data = {
+            'success':False,
+            'message':"Question Position Out Of Range.",
+        }
+        response.status = HTTP_400_BAD_REQUEST
+        return response
+    try:
+        ins = Question.objects.get(id=instance.id)
+        ins.question_no = -1
+        ins.save()
+        if(instance.question_no > data["question_no"]):
+            Question.objects.filter(track__id = data["track"], question_no__gte = data["question_no"], question_no__lt = instance.question_no).update(question_no = F('question_no')+1 )
+            newIns = Question.objects.get(id=instance.id)
+            newSerializer = QuestionSerializer(newIns, data = data)
+            if newSerializer.is_valid():
+                newSerializer.save()
+                response.data = {
+                    "success":True,
+                    "message":"Question added Sucessfully.",
+                    'data': newSerializer.data
+                }
+                response.status = HTTP_200_OK
+                return response
+            else:
+                print("error here")
+                response.data = {
+                    'success':False,
+                    'message': newSerializer.errors[list(newSerializer.errors.keys())[0]][0],
+                    'errors': newSerializer.errors
+                }
+                response.status = HTTP_400_BAD_REQUEST
+                return response
+        elif (instance.question_no < data["question_no"]):
+            Question.objects.filter(track__id = data["track"], question_no__lte = data["question_no"], question_no__gt = instance.question_no).update(question_no = F('question_no') - 1 )
+            newIns = Question.objects.get(id=instance.id)
+            newSerializer = QuestionSerializer(newIns, data = data)
+            if newSerializer.is_valid():
+                newSerializer.save()
+                response.data = {
+                    "success":True,
+                    "message":"Question added Sucessfully.",
+                    'data': newSerializer.data
+                }
+                response.status = HTTP_200_OK
+                return response
+            else:
+                response.data = {
+                    'success':False,
+                    'message': newSerializer.errors[list(newSerializer.errors.keys())[0]][0],
+                    'errors': newSerializer.errors
+                }
+                response.status = HTTP_400_BAD_REQUEST
+                return response
+        else:
+            ins = Question.objects.get(pk = instance.id)
+            serializer = QuestionSerializer(ins, data = data)
+            if serializer.is_valid():
+                serializer.save()
+                response.data = {
+                "success":True,
+                "message":"Question added Sucessfully.",
+                'data': serializer.data
+                }
+                response.status = HTTP_200_OK
+                return response
+            else:
+                response.data = {
+                    'success': False,
+                    'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+                    'errors': serializer.errors
+                }
+                response.status = HTTP_400_BAD_REQUEST
+                return response
+    except Exception as ex:
+        response.data = {
+            'success':False,
+            'message':f'Error while updating preceeding questions, error type: {type(ex).__name__}',
+        }
+        response.status = HTTP_400_BAD_REQUEST
+        return response
+
+@api_view(['PUT'])
+@permission_classes((IsAdminUser,))
+def updateQuestion(request,id):
+    response = Response()
+    try:
+        question = Question.objects.get(pk=id)
+        serializer = CheckQuestionSerializer(question,data=request.data)
+        if serializer.is_valid():
+            if request.data.get("question_no"):
+                response = updateIndexedQuestion(question,request.data)
+            else:
+                response.data = {
+                    'success': False,
+                    'message': "Field Question no. required.",
+                }
+            response.status = HTTP_400_BAD_REQUEST
+        else:
+            response.data = {
+                'success': False,
+                'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+                'errors': serializer.errors
+            }
+            response.status = HTTP_400_BAD_REQUEST
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Question {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+@api_view(['DELETE'])
+@permission_classes((IsAdminUser,))
+def deleteQuestion(request,id):
+    response = Response()
+    try:
+        question = Question.objects.get(pk=id)
+        question.delete()
+        Question.objects.filter(question_no__gte = question.question_no).update(question_no = F('question_no') -1 )
+        response.data = {
+            'success':True,
+            'message':f'Question {id} deleted Successfully.'
+        }
+        response.status = HTTP_200_OK
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Question {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
     return response
