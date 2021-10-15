@@ -2,6 +2,22 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.fields.related import ForeignKey
 from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth.base_user import BaseUserManager
+from django.utils.translation import ugettext_lazy as _
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, username, password, track=None):
+        if not username:
+            raise ValueError(_('The team name must be set'))
+        if not password:
+            raise ValueError(_('The Password must be set'))
+        if not track:
+            raise ValueError(_('The Track must be set'))
+        user = self.model(username=username, track=track)
+        user.set_password(password)
+        user.save()
+        return user
+
 
 class BearerAuthentication(TokenAuthentication):
     keyword = 'Bearer'
@@ -12,6 +28,8 @@ class Track(models.Model):
 class Team(AbstractUser):
     track = models.ForeignKey(to=Track,null=True, blank=True, related_name='team', on_delete=models.SET_NULL)
     score = models.IntegerField(default=0)
+
+    objects = CustomUserManager()
 
 class Player(models.Model):
     team = models.ForeignKey(to=Team, related_name='player', on_delete=models.CASCADE)
@@ -33,3 +51,4 @@ class Answer(models.Model):
     team = models.ForeignKey(to=Team, related_name='answer', on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     is_correct = models.BooleanField()
+    given_answer = models.CharField(max_length=100)

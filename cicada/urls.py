@@ -39,4 +39,10 @@ urlpatterns = [
     path('questions/detail/<int:id>/',getQuestion),
     path('questions/update/<int:id>/',updateQuestion),
     path('questions/delete/<int:id>/',deleteQuestion),
+    path('questions/detail/current/',getCurrentQuestion), 
+    path('answers/admin/add/',addAnswerAdmin),
+    path('answers/user/add/',addAnswerUser), 
+    path('answers/detail/',getAnswersByQuery),
+    path('answers/update/<int:id>/',updateAnswer),
+    path('answers/delete/<int:id>/',deleteAnswer),
 ]

@@ -1,6 +1,4 @@
-from copy import error
 from django.contrib.auth import authenticate
-from django.http import response
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
@@ -57,15 +55,17 @@ def login(request):
 @api_view(['POST'])
 @permission_classes((IsAdminUser,))
 def registerTeam(request):
+    print(request.data)
     serializer = TeamSerializer(data = request.data)
     response = Response()
 
     if serializer.is_valid():
-        serializer.save()
+        newTeam = serializer.save()
+        # newTeam = Team.objects.create_user(username=request.data.get("username"),password=request.data.get("password"),track=request.data.get("track"))
         response.data = {
         "success":True,
         "message":"Team added Sucessfully.",
-        'data': serializer.data
+        'data': TeamSerializer(newTeam).data
         }
         response.status = HTTP_200_OK
 
@@ -517,6 +517,27 @@ def getQuestion(request,id):
         }
         response.status = HTTP_404_NOT_FOUND
     
+    return response 
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def getCurrentQuestion(request):
+    # try:
+    question = calcTeamQuestion(request.user)
+    print(question)
+    print(request.user)
+    response = Response()
+    response.data = {
+        'success':True,
+        'message':"question GET successful.",
+        'data':QuestionSerializer(question, remove=['correct_answer']).data
+    }
+    # except Exception as ex:
+    #     response.data = {
+    #         'success':False,
+    #         'message':f'An Error Occoured of type {type(ex).__name__}'
+    #     }
+    #     response.status = HTTP_400_BAD_REQUEST
     return response
 
 def updateIndexedQuestion(instance,data):
@@ -652,6 +673,170 @@ def deleteQuestion(request,id):
         response.data = {
             'success':False,
             "message":f"Question {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+
+    return response
+
+@api_view(['POST'])
+@permission_classes((IsAdminUser,))
+def addAnswerAdmin(request):
+    serializer = AnswerSerializer(data = request.data)
+    response = Response()
+    if serializer.is_valid():
+        question = Question.objects.get(pk = request.data["question"])
+        is_correct = True if request.data["given_answer"] == question.correct_answer else False
+        serializer.save(is_correct = is_correct)
+        response.data = {
+        "success":True,
+        "message":"Answer added Sucessfully.",
+        'data': serializer.data
+        }
+        response.status = HTTP_200_OK
+    else:
+        response.data = {
+            'success': False,
+            'message': serializer.errors[list(serializer.errors.keys())[0]][0],
+            'errors': serializer.errors
+        }
+        response.status = HTTP_400_BAD_REQUEST
+
+    return response
+
+def calcTeamQuestion(team):
+    return Question.objects.filter( track = team.track,  ).exclude( answer__is_correct = True, answer__team = team ).order_by('question_no').first()
+@api_view(['POST'])
+@permission_classes((IsAuthenticated,))
+def addAnswerUser(request):
+    try:
+        response = Response()
+        team = request.user
+        given_answer = request.data.get("answer")
+        if given_answer is None:
+            response.data = {
+                'success':False,
+                'message':"given_answer field is required."
+            }
+            response.status = HTTP_400_BAD_REQUEST
+            return response
+        question = calcTeamQuestion(team)
+        is_correct = question.correct_answer == given_answer
+        answer = Answer.objects.create(team = team, given_answer = given_answer, question = question, is_correct = is_correct)
+        if is_correct:
+            next_question = calcTeamQuestion(team)
+            questionData = QuestionSerializer(next_question, remove = ['correct_answer']).data if next_question else None
+            response.data = {
+                'success':True,
+                'message':"Congratulations! Your answer was correct.",
+                'data':{
+                    'answer':AnswerSerializer(answer).data,
+                    'next_question': questionData,
+                    'completed': False if next_question else True
+                }
+            }
+        else:
+            response.data = {
+                'success':True,
+                'message':'Sorry, The answer was Incorrect.',
+                'data':{
+                    'answer':AnswerSerializer(answer).data,
+                    'completed':False
+                }
+            }
+        response.status = HTTP_200_OK
+    except Exception as ex:
+        response.data = {
+            'success':False,
+            'message':f'An Error Occoured of type {type(ex).__name__}'
+        }
+        response.status = HTTP_400_BAD_REQUEST
+    return response
+
+@api_view(['GET'])
+@permission_classes((IsAdminUser,))
+def getAnswersByQuery(request):
+    response = Response()
+    try:
+        id = request.GET.get("id")
+        team = request.GET.get("team")
+        correct_only = request.GET.get("correct_only")
+        question = request.GET.get("question")
+        track = request.GET.get("track")
+        allAnswers = Answer.objects.filter()
+        if id is not None:
+            print(id)
+            allAnswers = allAnswers.filter(pk=id)
+        if team is not None:
+            allAnswers = allAnswers.filter(team = int(team))
+        if correct_only is not None and correct_only == "yes":
+            allAnswers = allAnswers.filter(is_correct = True)
+        if question is not None:
+            allAnswers = allAnswers.filter(question = int(question))
+        if track is not None:
+            allAnswers = allAnswers.filter(question__track = int(track))
+        response.data = {
+            'success':True,
+            'message':"Answers lookup  successful.",
+            'data':AnswerSerializer(allAnswers,many=True).data
+        }
+    except Exception as ex:
+        response.data = {
+            'success':False,
+            'message':f'An Error Occoured of type {type(ex).__name__}'
+        }
+        response.status = HTTP_400_BAD_REQUEST
+    return response
+
+        
+    
+@api_view(['PUT'])
+@permission_classes((IsAdminUser,))
+def updateAnswer(request,id):
+    response = Response()
+    try:
+        answer = Answer.objects.get(pk=id)
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Team {id} Does Not Exist."
+        }
+        response.status = HTTP_404_NOT_FOUND
+        return response
+    serializer = AnswerSerializer(answer,data = request.data)
+    if serializer.is_valid():
+        is_correct = answer.question.correct_answer == request.data["given_answer"]
+        serializer.save(is_correct=is_correct)
+        response.data = {
+            'success':True,
+            'message':f'Answer {answer.id} Updated.',
+            'data':serializer.data
+        }
+        response.status = HTTP_200_OK
+    else:
+        response.data = {
+            'success':False,
+            'message':serializer.errors[list(serializer.errors.keys())[0]][0],
+            'errors':serializer.errors
+        }
+        response.status = HTTP_400_BAD_REQUEST
+    return response
+
+@api_view(['DELETE'])
+@permission_classes((IsAdminUser,))
+def deleteAnswer(request,id):
+    response = Response()
+    try:
+        answer = Answer.objects.get(pk=id)
+        answer.delete()
+        response.data = {
+            'success':True,
+            'message':f'Answer {id} deleted Successfully.'
+        }
+        response.status = HTTP_200_OK
+    except:
+        response.data = {
+            'success':False,
+            "message":f"Answer {id} Does Not Exist."
         }
         response.status = HTTP_404_NOT_FOUND
 
