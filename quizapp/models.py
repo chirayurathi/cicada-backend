@@ -6,18 +6,28 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import ugettext_lazy as _
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, username, password, track=None):
+    def create_user(self, username, password, track=None, is_superuser=False):
         if not username:
             raise ValueError(_('The team name must be set'))
         if not password:
             raise ValueError(_('The Password must be set'))
-        if not track:
+        if not track and not is_superuser:
             raise ValueError(_('The Track must be set'))
         user = self.model(username=username, track=track)
         user.set_password(password)
         user.save()
         return user
 
+    def create_superuser(self,username, email, password):
+        user = self.create_user(
+            username,
+            password=password,
+            is_superuser=True
+        )
+        user.is_staff = True
+        user.is_superuser = True
+        user.save(using=self._db)
+        return user
 
 class BearerAuthentication(TokenAuthentication):
     keyword = 'Bearer'
