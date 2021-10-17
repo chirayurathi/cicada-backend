@@ -1,1 +1,1 @@
-web: gunicorn cicada.wsgi --log-file -
+web: gunicorn cicada.wsgi
