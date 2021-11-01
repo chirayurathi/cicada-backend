@@ -27,7 +27,15 @@ SECRET_KEY = 'django-insecure-!-2$^hd(1#58z=hj1rhll!wfz0&v$h!u#%b0(weka3spphkgf5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cicada-backend.herokuapp.com','127.0.0.1']
+ALLOWED_HOSTS = ['cicada-backend.herokuapp.com','127.0.0.1','localhost']
+
+CORS_ORIGIN_ALLOW_ALL = False
+
+CORS_ORIGIN_WHITELIST = (
+  'http://localhost:8000',
+  'http://localhost:3000',
+  'https://cicada-backend.herokuapp.com',
+)
 
 
 # Application definition
@@ -42,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'quizapp',
+    'corsheaders'
 ]
 
 AUTH_USER_MODEL = 'quizapp.Team'
@@ -55,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'cicada.urls'
