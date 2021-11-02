@@ -704,7 +704,7 @@ def addAnswerAdmin(request):
     return response
 
 def calcTeamQuestion(team):
-    return Question.objects.filter( track = team.track,  ).exclude( answer__is_correct = True, answer__team = team ).order_by('question_no').first()
+    return Question.objects.filter( track = team.track,  ).exclude( answer__in = Answer.objects.filter(is_correct = True, team = team) ).order_by('question_no').first()
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))
 def addAnswerUser(request):
