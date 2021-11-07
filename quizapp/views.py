@@ -705,6 +705,7 @@ def addAnswerAdmin(request):
 
 def calcTeamQuestion(team):
     return Question.objects.filter( track = team.track,  ).exclude( answer__in = Answer.objects.filter(is_correct = True, team = team) ).order_by('question_no').first()
+
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))
 def addAnswerUser(request):
@@ -840,4 +841,27 @@ def deleteAnswer(request,id):
         }
         response.status = HTTP_404_NOT_FOUND
 
+    return response
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def getHint(request):
+    response = Response()
+    question = calcTeamQuestion(request.user)
+    if not question:
+        response.data = {
+            'success':False,
+            "message":f"You have already completed the test."
+        }
+        response.status = HTTP_404_NOT_FOUND
+        return response
+
+    usedhint = UsedHints.objects.filter(team = request.user, question = question)
+    if not usedhint:
+        UsedHints.objects.create(team = request.user, question = question)
+    response.data = {
+        'success':True,
+        "message":question.hint,
+    }
+    response.status = HTTP_200_OK
     return response

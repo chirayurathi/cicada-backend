@@ -51,7 +51,8 @@ class Question(models.Model):
     question_no = models.IntegerField()
     question = models.TextField(max_length=300)
     correct_answer = models.CharField(max_length=100)
-
+    hint = models.TextField(max_length=300, null=True, blank=True)
+    super_hint = models.TextField(max_length=300, null=True, blank=True)
     class Meta:
         unique_together = ('track','question_no')
         ordering = ['question_no']
@@ -62,3 +63,10 @@ class Answer(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     is_correct = models.BooleanField()
     given_answer = models.CharField(max_length=100)
+
+class UsedHints(models.Model):
+    question = models.ForeignKey(to=Question, related_name="usedhints", on_delete=models.CASCADE)
+    team = models.ForeignKey(to=Team,related_name="usedhints", on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = ('question','team')
