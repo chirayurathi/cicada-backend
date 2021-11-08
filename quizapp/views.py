@@ -529,8 +529,11 @@ def getCurrentQuestion(request):
     response = Response()
     response.data = {
         'success':True,
-        'message':"question GET successful.",
-        'data':QuestionSerializer(question, remove=['correct_answer']).data
+        'message':"question GET successful." if question else "You have already completed the test",
+        'data':{
+            "current_question":QuestionSerializer(question, remove=['correct_answer','hint','super_hint']).data,
+            "completed":False if question else True
+        }
     }
     # except Exception as ex:
     #     response.data = {
@@ -725,7 +728,7 @@ def addAnswerUser(request):
         answer = Answer.objects.create(team = team, given_answer = given_answer, question = question, is_correct = is_correct)
         if is_correct:
             next_question = calcTeamQuestion(team)
-            questionData = QuestionSerializer(next_question, remove = ['correct_answer']).data if next_question else None
+            questionData = QuestionSerializer(next_question, remove = ['correct_answer','hint','super_hint']).data if next_question else None
             response.data = {
                 'success':True,
                 'message':"Congratulations! Your answer was correct.",
