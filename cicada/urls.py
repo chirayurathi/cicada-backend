@@ -46,4 +46,5 @@ urlpatterns = [
     path('answers/detail/',getAnswersByQuery),
     path('answers/update/<int:id>/',updateAnswer),
     path('answers/delete/<int:id>/',deleteAnswer),
+    path('reset/',resetTeam)
 ]

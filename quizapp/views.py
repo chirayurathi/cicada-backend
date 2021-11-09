@@ -868,3 +868,22 @@ def getHint(request):
     }
     response.status = HTTP_200_OK
     return response
+
+@api_view(['DELETE'])
+@permission_classes((IsAuthenticated,))
+def resetTeam(request):
+    response = Response()
+    try:
+        Answer.objects.filter(team = request.user).delete()
+        response.data = {
+            'success':True,
+            'message': "Your answers have been reset"
+        }
+        response.status = HTTP_200_OK
+    except Exception as ex:
+        response.data = {
+            'success':False,
+            'message':f'Error while updating preceeding questions, error type: {type(ex).__name__}',
+        }
+        response.status = HTTP_400_BAD_REQUEST
+    return response
